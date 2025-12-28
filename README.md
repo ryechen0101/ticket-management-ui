@@ -3,7 +3,7 @@
 這是一個工單管理系統的前端介面，提供使用者建立、查詢、追蹤工單狀態，以及管理者進行帳號管理。
 
 **線上 Demo（GitHub Pages）**  
-🔗 https://ryechen0101.github.io/xxx/ticket-management-ui
+🔗 https://ryechen0101.github.io/ticket-management-ui
 
 （僅提供操作 USER 權限，AGENT 與 ADMIN 權限的操作畫面以截圖方式呈現在下面說明。）
 
