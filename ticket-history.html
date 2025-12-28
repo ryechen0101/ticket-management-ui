@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <title>工單變動歷史</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag">修改歷史</span>
+            </div>
+            <div class="row">
+                <a class="btn secondary" href="javascript:history.back()">回上一頁</a>
+                <a class="btn secondary" href="index.html">回主選單</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2 id="title">工單歷史</h2>
+
+            <ul id="history" class="list"></ul>
+            <div id="empty" class="kbd" style="display:none;">尚無歷史紀錄</div>
+
+            <div class="pager">
+                <button id="prevBtn" class="secondary">上一頁</button>
+                <div id="pageInfo" class="info"></div>
+                <button id="nextBtn" class="secondary">下一頁</button>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+
+        const params = new URLSearchParams(location.search);
+        const ticketId = params.get("id");
+
+        let page = 0;
+        const size = 10;
+
+        function fmt(dt) {
+            return dt ? dt.replace("T", " ").slice(0, 19) : "";
+        }
+
+        async function load() {
+            const ul = document.getElementById("history");
+            const empty = document.getElementById("empty");
+            const pageInfo = document.getElementById("pageInfo");
+
+            ul.innerHTML = "";
+            empty.style.display = "none";
+
+            const data = await api(
+                `/api/tickets/${ticketId}/history?page=${page}&size=${size}`
+            );
+
+            if (!data.content || data.content.length === 0) {
+                empty.style.display = "block";
+                return;
+            }
+
+            const labelMap = {
+                STATUS: "狀態",
+                PRIORITY: "優先級",
+                TITLE: "標題",
+                DESCRIPTION: "內容"
+            };
+
+            for (const h of data.content) {
+                const li = document.createElement("li");
+                li.textContent =
+                    `[${fmt(h.createdAt)}] ${h.changedByUsername}：` +
+                    `${labelMap[h.fieldName] || h.fieldName} ` +
+                    `${h.fromValue ?? "(空)"} → ${h.toValue ?? "(空)"}` +
+                    (h.note ? `（${h.note}）` : "");
+                ul.appendChild(li);
+            }
+
+            pageInfo.textContent =
+                `第 ${data.number + 1} 頁 / 共 ${data.totalPages} 頁`;
+
+            document.getElementById("prevBtn").disabled = data.first;
+            document.getElementById("nextBtn").disabled = data.last;
+        }
+
+        document.getElementById("prevBtn").onclick = () => {
+            page = Math.max(0, page - 1);
+            load();
+        };
+
+        document.getElementById("nextBtn").onclick = () => {
+            page++;
+            load();
+        };
+
+        if (!ticketId) {
+            alert("缺少 ticketId");
+        } else {
+            load();
+        }
+    </script>
+</body>
+
+</html>

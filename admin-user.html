@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>使用者詳情</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1 id="pageTitle">使用者詳情</h1>
+                <span class="tag">Admin</span>
+            </div>
+            <div class="row" style="margin:0;">
+                <a class="btn secondary" href="admin-users.html">回列表</a>
+                <a class="btn secondary" href="index.html">回主選單</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <div id="error" class="error"></div>
+
+        <!-- 基本資料 -->
+        <section class="card" id="mainCard">
+            <h2>基本資料</h2>
+            <div class="row" id="meta"></div>
+        </section>
+
+        <!-- 改角色 -->
+        <section class="card" id="roleCard" style="margin-top:14px;">
+            <h2>修改角色</h2>
+            <div class="row">
+                <div class="field" style="max-width:240px;">
+                    <label>角色</label>
+                    <select id="roleSel">
+                        <option value="USER">一般使用者（USER）</option>
+                        <option value="AGENT">承辦人員（AGENT）</option>
+                        <option value="ADMIN">系統管理員（ADMIN）</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:160px;">
+                    <label>&nbsp;</label>
+                    <button id="saveRoleBtn" class="secondary">更新角色</button>
+                </div>
+
+                <span id="roleMsg" class="msg"></span>
+            </div>
+        </section>
+
+        <!-- 改密碼 -->
+        <section class="card" id="pwdCard" style="margin-top:14px;">
+            <h2>修改密碼</h2>
+            <div class="row">
+                <div class="field" style="max-width:260px;">
+                    <label>新密碼</label>
+                    <input id="newPwd" type="password" placeholder="至少 6 碼" autocomplete="new-password" />
+                </div>
+
+                <div class="field" style="max-width:260px;">
+                    <label>確認新密碼</label>
+                    <input id="newPwd2" type="password" placeholder="再輸入一次新密碼" autocomplete="new-password" />
+                </div>
+
+                <div class="field" style="max-width:160px;">
+                    <label>&nbsp;</label>
+                    <button id="savePwdBtn" class="secondary">更新密碼</button>
+                </div>
+
+                <span id="pwdMsg" class="msg"></span>
+            </div>
+        </section>
+
+        <!-- 啟用/停用 -->
+        <section class="card" id="enabledCard" style="margin-top:14px;">
+            <h2>啟用 / 停用</h2>
+            <div class="row">
+                <button id="toggleBtn" class="secondary">切換狀態</button>
+                <span class="kbd" id="enabledHint"></span>
+                <span id="enabledMsg" class="msg"></span>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+        import { guardPage } from "./assets/guard.js";
+
+        // ✅ 只保留 guardPage（不再重複 parseJwt / showGuard）
+        guardPage({
+            allowRoles: ["ADMIN"],
+            title: "使用者管理",
+            hint: "此頁僅限管理員（ADMIN）操作。"
+        });
+
+        const errorDiv = document.getElementById("error");
+
+        const params = new URLSearchParams(location.search);
+        const id = params.get("id");
+
+        function fmt(dt) {
+            return dt ? dt.replace("T", " ").slice(0, 19) : "";
+        }
+
+        function roleText(role) {
+            if (role === "ADMIN") return "系統管理員（ADMIN）";
+            if (role === "AGENT") return "承辦人員（AGENT）";
+            return "一般使用者（USER）";
+        }
+
+        let currentUser = null;
+
+        function renderMeta(u) {
+            document.getElementById("pageTitle").textContent = `使用者詳情 #${u.id}`;
+            document.getElementById("meta").innerHTML = `
+        <div class="field" style="max-width:220px;">
+          <label>ID</label>
+          <div class="kbd">#${u.id}</div>
+        </div>
+        <div class="field" style="max-width:260px;">
+          <label>帳號</label>
+          <div class="kbd">${u.username}</div>
+        </div>
+        <div class="field" style="max-width:260px;">
+          <label>角色</label>
+          <div class="kbd">${roleText(u.role)}</div>
+        </div>
+        <div class="field" style="max-width:220px;">
+          <label>狀態</label>
+          <div class="kbd">${u.enabled ? "啟用" : "停用"}</div>
+        </div>
+        <div class="field" style="max-width:260px;">
+          <label>建立時間</label>
+          <div class="kbd">${fmt(u.createdAt)}</div>
+        </div>
+      `;
+
+            document.getElementById("roleSel").value = u.role;
+            document.getElementById("enabledHint").textContent =
+                u.enabled ? "目前：啟用中（點按將改為停用）" : "目前：停用中（點按將改為啟用）";
+            document.getElementById("toggleBtn").textContent = u.enabled ? "停用此帳號" : "啟用此帳號";
+        }
+
+        async function load() {
+            errorDiv.textContent = "";
+            if (!id) {
+                errorDiv.textContent = "缺少 id，請從列表點選查看進入";
+                return;
+            }
+
+            try {
+                const u = await api(`/api/admin/users/${id}`);
+                currentUser = u;
+                renderMeta(u);
+            } catch (e) {
+                errorDiv.textContent = e.message;
+            }
+        }
+
+        // 修改角色
+        document.getElementById("saveRoleBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("roleMsg");
+            msg.textContent = "";
+            const role = document.getElementById("roleSel").value;
+
+            try {
+                await api(`/api/admin/users/${id}/role`, {
+                    method: "PUT",
+                    body: JSON.stringify({ role })
+                });
+                msg.textContent = "角色更新成功";
+                await load();
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        // 修改密碼（✅ 修 bug：password / password2）
+        document.getElementById("savePwdBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("pwdMsg");
+            msg.textContent = "";
+            const password = document.getElementById("newPwd").value;
+            const password2 = document.getElementById("newPwd2").value;
+
+            if (!password || password.length < 6) {
+                msg.textContent = "新密碼至少 6 碼";
+                return;
+            }
+
+            if (password !== password2) {
+                msg.textContent = "兩次新密碼不一致，請重新確認";
+                return;
+            }
+
+            try {
+                await api(`/api/admin/users/${id}/password`, {
+                    method: "PUT",
+                    body: JSON.stringify({ password })
+                });
+                msg.textContent = "密碼更新成功";
+                document.getElementById("newPwd").value = "";
+                document.getElementById("newPwd2").value = "";
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        // 啟用/停用
+        document.getElementById("toggleBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("enabledMsg");
+            msg.textContent = "";
+
+            if (!currentUser) return;
+            const nextEnabled = !currentUser.enabled;
+
+            try {
+                await api(`/api/admin/users/${id}/enabled`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ enabled: nextEnabled })
+                });
+                msg.textContent = nextEnabled ? "已啟用" : "已停用";
+                await load();
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        load();
+    </script>
+</body>
+
+</html>

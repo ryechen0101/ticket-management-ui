@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>工單列表</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag">查詢 / 列表</span>
+            </div>
+            <div class="row" style="margin:0;">
+                <a class="btn secondary" href="index.html">回主選單</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>查詢條件</h2>
+
+            <div class="row">
+                <div class="field" style="max-width:260px;">
+                    <label>關鍵字</label>
+                    <input id="q" placeholder="標題/內容" />
+                </div>
+
+                <div class="field" style="max-width:200px;">
+                    <label>狀態</label>
+                    <select id="status">
+                        <option value="">全部</option>
+                        <option value="OPEN">未處理（OPEN）</option>
+                        <option value="IN_PROGRESS">處理中（IN_PROGRESS）</option>
+                        <option value="RESOLVED">已解決（RESOLVED）</option>
+                        <option value="CLOSED">已結案（CLOSED）</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:140px;">
+                    <label>每頁</label>
+                    <select id="size">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:220px;">
+                    <label>排序</label>
+                    <select id="sort">
+                        <option value="createdAt,desc" selected>建立時間 desc</option>
+                        <option value="createdAt,asc">建立時間 asc</option>
+                        <option value="updatedAt,desc">更新時間 desc</option>
+                        <option value="updatedAt,asc">更新時間 asc</option>
+                        <option value="id,desc">ID desc</option>
+                        <option value="id,asc">ID asc</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:140px;">
+                    <label>&nbsp;</label>
+                    <button id="searchBtn" class="secondary">搜尋 / 刷新</button>
+                </div>
+
+                <div class="field" style="max-width:140px;">
+                    <label>&nbsp;</label>
+                    <button id="clearBtn" class="secondary">清除條件</button>
+                </div>
+            </div>
+
+            <div id="error" class="error"></div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">ID</th>
+                        <th style="width:140px;">標題</th>
+                        <th style="width:140px;">狀態</th>
+                        <th style="width:140px;">優先級</th>
+                        <th style="width:160px;">建立者</th>
+                        <th style="width:180px;">建立時間</th>
+                        <th style="width:70px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+
+            <div class="pager">
+                <button id="prevBtn" class="secondary">上一頁</button>
+                <div class="info" id="pageInfo"></div>
+                <button id="nextBtn" class="secondary">下一頁</button>
+            </div>
+
+
+        </section>
+    </main>
+
+    <script type="module">
+        import { api, isLoggedIn } from "./assets/api.js";
+        import { guardPage } from "./assets/guard.js";
+
+        guardPage({
+            allowRoles: ["USER", "AGENT"],
+            title: "工單查詢 / 列表",
+            hint: "此頁僅限一般使用者（USER）與客服/主管（AGENT）使用。"
+        });
+
+
+        const tbody = document.getElementById("tbody");
+        const errorDiv = document.getElementById("error");
+        const pageInfo = document.getElementById("pageInfo");
+        let page = 0;
+
+        function fmt(dt) {
+            if (!dt) return "";
+            return dt.replace("T", " ").slice(0, 19);
+        }
+
+        function prText(p) {
+            if (p === "HIGH") return "高";
+            if (p === "LOW") return "低";
+            return "中";
+        }
+
+        function readFilters() {
+            const q = document.getElementById("q").value.trim();
+            const status = document.getElementById("status").value;
+            const size = document.getElementById("size").value;
+            const sort = document.getElementById("sort").value;
+            return { q, status, size, sort };
+        }
+
+        async function load() {
+            errorDiv.textContent = "";
+            tbody.innerHTML = "";
+
+            const { q, status, size, sort } = readFilters();
+            const params = new URLSearchParams();
+            params.set("page", page);
+            params.set("size", size);
+            if (sort) params.set("sort", sort);
+            if (q) params.set("q", q);
+            if (status) params.set("status", status);
+
+            try {
+                const data = await api(`/api/tickets?${params.toString()}`);
+
+                if (!data.content || data.content.length === 0) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td colspan="7" class="kbd" style="padding:12px;">沒有資料</td>`;
+                    tbody.appendChild(tr);
+                } else {
+                    for (const t of data.content) {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+            <td>${t.id}</td>
+            <td>${t.title}</td>
+            <td><span class="badge">${t.status}</span></td>
+            <td><span class="badge">${prText(t.priority)}（${t.priority}）</span></td>
+            <td>${t.requesterUsername ?? ""}</td>
+            <td>${fmt(t.createdAt)}</td>
+            <td><a href="ticket.html?id=${t.id}">查看</a></td>
+          `;
+                        tbody.appendChild(tr);
+                    }
+                }
+
+                pageInfo.textContent = `第 ${data.number + 1} 頁 / 共 ${data.totalPages || 1} 頁（總數 ${data.totalElements}）`;
+                document.getElementById("prevBtn").disabled = data.first;
+                document.getElementById("nextBtn").disabled = data.last;
+
+            } catch (e) {
+                errorDiv.textContent = e.message;
+            }
+        }
+
+        document.getElementById("searchBtn").addEventListener("click", () => { page = 0; load(); });
+        document.getElementById("clearBtn").addEventListener("click", () => {
+            document.getElementById("q").value = "";
+            document.getElementById("status").value = "";
+            document.getElementById("size").value = "10";
+            document.getElementById("sort").value = "createdAt,desc";
+            page = 0;
+            load();
+        });
+
+        document.getElementById("size").addEventListener("change", () => { page = 0; load(); });
+        document.getElementById("sort").addEventListener("change", () => { page = 0; load(); });
+        document.getElementById("status").addEventListener("change", () => { page = 0; load(); });
+
+        document.getElementById("prevBtn").addEventListener("click", () => { page = Math.max(0, page - 1); load(); });
+        document.getElementById("nextBtn").addEventListener("click", () => { page = page + 1; load(); });
+
+        load();
+    </script>
+</body>
+
+</html>

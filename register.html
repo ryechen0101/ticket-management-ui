@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>註冊</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag">註冊</span>
+            </div>
+            <div class="row" style="margin:0;">
+                <a class="btn secondary" href="login.html">回登入</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>建立帳號</h2>
+
+            <div class="field">
+                <label>帳號</label>
+                <input id="username" maxlength="50" placeholder="請輸入帳號" />
+            </div>
+
+            <div class="field">
+                <label>密碼</label>
+                <input id="password" type="password" placeholder="至少 6 碼" autocomplete="new-password" />
+            </div>
+
+            <div class="field">
+                <label>確認密碼</label>
+                <!-- ✅ 修正：id 改成 password2（或你也可以改 JS 去抓 newPassword2；我這裡選擇統一成 password2） -->
+                <input id="password2" type="password" placeholder="再輸入一次密碼" autocomplete="new-password" />
+            </div>
+
+            <div class="row">
+                <button id="registerBtn">註冊</button>
+                <span id="msg" class="msg"></span>
+            </div>
+
+            <div class="kbd" style="margin-top:12px;">
+                ⚠ 本頁僅供測試：<br />
+                - 只能建立一般使用者<br />
+                - 無法建立 ADMIN 帳號<br />
+                - 忘記密碼需由 ADMIN 協助
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+
+        const msg = document.getElementById("msg");
+
+        document.getElementById("registerBtn").addEventListener("click", async () => {
+            msg.textContent = "";
+
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            const password2 = document.getElementById("password2").value;
+
+            if (!username || !password || !password2) {
+                msg.textContent = "帳號與密碼不可空白";
+                return;
+            }
+
+            if (password.length < 6) {
+                msg.textContent = "密碼至少 6 碼";
+                return;
+            }
+
+            // ✅ 修 bug：password / password2
+            if (password !== password2) {
+                msg.textContent = "兩次密碼不一致，請重新確認";
+                return;
+            }
+
+            try {
+                await api("/api/auth/register", {
+                    method: "POST",
+                    body: JSON.stringify({ username, password })
+                });
+
+                msg.textContent = "註冊成功，請回登入頁登入";
+                document.getElementById("username").value = "";
+                document.getElementById("password").value = "";
+                document.getElementById("password2").value = "";
+
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

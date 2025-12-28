@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>新增工單</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag">建立</span>
+            </div>
+            <a class="btn secondary" href="index.html">回主選單</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>建立工單</h2>
+            <form id="createForm">
+                <div class="field">
+                    <label>標題</label>
+                    <input id="title" maxlength="100" required />
+                </div>
+
+                <div class="field">
+                    <label>內容</label>
+                    <textarea id="description" maxlength="500"></textarea>
+                </div>
+
+                <div class="field" style="max-width:240px;">
+                    <label>優先級</label>
+                    <select id="priority">
+                        <option value="LOW">低（LOW）</option>
+                        <option value="MEDIUM" selected>中（MEDIUM）</option>
+                        <option value="HIGH">高（HIGH）</option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <button type="submit">新增</button>
+                    <span id="msg" class="msg"></span>
+                </div>
+            </form>
+
+        </section>
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+        import { guardPage } from "./assets/guard.js";
+
+        guardPage({
+            allowRoles: ["USER", "AGENT"],
+            title: "新增工單",
+            hint: "此頁僅限一般使用者（USER）與客服/主管（AGENT）使用。"
+        });
+
+
+        document.getElementById("createForm").addEventListener("submit", async (ev) => {
+            ev.preventDefault();
+            const msg = document.getElementById("msg");
+            msg.textContent = "";
+
+            const title = document.getElementById("title").value.trim();
+            const description = document.getElementById("description").value.trim();
+            const priority = document.getElementById("priority").value;
+
+            try {
+                const created = await api("/api/tickets", {
+                    method: "POST",
+                    body: JSON.stringify({ title, description, priority })
+                });
+                msg.textContent = `新增成功：#${created.id}`;
+                document.getElementById("title").value = "";
+                document.getElementById("description").value = "";
+                document.getElementById("priority").value = "MEDIUM";
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

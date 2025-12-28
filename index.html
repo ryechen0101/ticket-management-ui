@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>工單系統 - 主選單</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag">主選單</span>
+            </div>
+            <div class="kbd">選擇功能開始操作</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>功能選單</h2>
+
+            <div class="menu-grid">
+                <div class="menu-card" id="createCard">
+                    <div class="title">新增工單</div>
+                    <div class="desc">建立一筆新的工單（標題/內容/優先級）。</div>
+                    <a class="btn" href="create.html">進入</a>
+                </div>
+
+                <div class="menu-card" id="ticketsCard">
+                    <div class="title">工單查詢 / 列表</div>
+                    <div class="desc">關鍵字、狀態、分頁、排序，並可點查看詳情。</div>
+                    <a class="btn" href="tickets.html">進入</a>
+                </div>
+
+                <div class="menu-card" id="myPwdCard" style="display:none;">
+                    <div class="title">修改我的密碼</div>
+                    <div class="desc">登入後可自行更改密碼（需輸入舊密碼）。</div>
+                    <a class="btn" href="my-password.html">進入</a>
+                </div>
+
+                <div class="menu-card" id="adminCard" style="display:none;">
+                    <div class="title">使用者管理</div>
+                    <div class="desc">建立帳號、設定角色與權限、停用、改密碼（Admin 專用）。</div>
+                    <a class="btn" href="admin-users.html">進入</a>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:16px;">
+                <button id="logoutBtn" class="secondary">登出</button>
+                <span class="msg" id="who"></span>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { isLoggedIn, getRole, logout } from "./assets/api.js";
+
+        if (!isLoggedIn()) {
+            location.href = "login.html";
+            throw new Error("Not logged in");
+        }
+
+        const role = getRole();
+        const username = localStorage.getItem("username") || "";
+
+        const createCard = document.getElementById("createCard");
+        const ticketsCard = document.getElementById("ticketsCard");
+        const myPwdCard = document.getElementById("myPwdCard");
+        const adminCard = document.getElementById("adminCard");
+
+        // USER 才顯示「修改我的密碼」
+        if (role === "USER") {
+            if (myPwdCard) myPwdCard.style.display = "flex";
+        }
+
+        // ADMIN：只看得到使用者管理
+        if (role === "ADMIN") {
+            if (adminCard) adminCard.style.display = "flex";
+            if (createCard) createCard.style.display = "none";
+            if (ticketsCard) ticketsCard.style.display = "none";
+            if (myPwdCard) myPwdCard.style.display = "none";
+        }
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            logout();
+            location.href = "login.html";
+        });
+
+        document.getElementById("who").textContent =
+            username ? `登入中：${username}（角色：${role}）` : "";
+    </script>
+</body>
+
+</html>

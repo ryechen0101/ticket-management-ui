@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>工單詳情</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>工單系統</h1>
+                <span class="tag" id="pageTitle">詳情</span>
+            </div>
+            <div class="row" style="margin:0;">
+                <a class="btn secondary" href="index.html">回主選單</a>
+                <a class="btn secondary" href="tickets.html">回列表</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="error" class="error"></div>
+
+        <section class="card">
+            <h2>基本資料</h2>
+            <div id="meta" class="row" style="align-items:flex-start;"></div>
+        </section>
+
+        <section class="card">
+            <h2>修改工單</h2>
+            <div class="row">
+                <div class="field" style="flex:1; min-width:240px;">
+                    <label>標題</label>
+                    <input id="editTitle" maxlength="100" />
+                </div>
+
+                <div class="field" style="flex:1; min-width:240px;">
+                    <label>內容</label>
+                    <input id="editDesc" maxlength="500" />
+                </div>
+
+                <div class="field" style="max-width:220px;">
+                    <label>優先級</label>
+                    <select id="editPriority">
+                        <option value="LOW">低（LOW）</option>
+                        <option value="MEDIUM">中（MEDIUM）</option>
+                        <option value="HIGH">高（HIGH）</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:140px;">
+                    <label>&nbsp;</label>
+                    <button id="updateBtn" class="secondary">更新</button>
+                </div>
+
+                <span id="updateMsg" class="msg"></span>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>改狀態</h2>
+            <div class="row">
+                <div class="field" style="max-width:220px;">
+                    <label>目標狀態</label>
+                    <select id="toStatus">
+                        <option value="OPEN">OPEN</option>
+                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                        <option value="RESOLVED">RESOLVED</option>
+                        <option value="CLOSED">CLOSED</option>
+                    </select>
+                </div>
+
+                <div class="field" style="flex:1; min-width:240px;">
+                    <label>備註（可空）</label>
+                    <input id="note" placeholder="例如：開始處理 / 已完成測試" />
+                </div>
+
+                <div class="field" style="max-width:140px;">
+                    <label>&nbsp;</label>
+                    <button id="changeBtn">更新</button>
+                </div>
+
+                <span id="statusMsg" class="msg"></span>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>留言 / 歷史</h2>
+
+            <div class="detail-grid">
+                <!-- 左欄：留言（輸入卡 + 最新 5 筆卡） -->
+                <div class="left-stack">
+                    <!-- 1) 輸入留言 -->
+                    <div class="subcard">
+                        <h3>新增留言</h3>
+
+                        <form id="commentForm" class="row" style="margin-top:0;">
+                            <div class="field" style="flex:1; min-width:240px;">
+                                <input id="content" maxlength="500" placeholder="輸入留言..." required />
+                            </div>
+
+                            <div class="field" style="max-width:140px;">
+                                <button type="submit" class="secondary">送出</button>
+                            </div>
+
+                            <span id="commentMsg" class="msg"></span>
+                        </form>
+                    </div>
+
+                    <!-- 2) 最新 5 筆留言 -->
+                    <div class="subcard" style="margin-top:12px;">
+                        <div class="subcard-head">
+                            <h3 style="margin:0;">最新留言（最多 5 筆）</h3>
+                            <button id="viewAllCommentsBtn" class="secondary">查看完整留言</button>
+                        </div>
+
+                        <div id="commentsEmpty" class="kbd" style="display:none;">尚無留言</div>
+                        <ul id="comments" class="list"></ul>
+                    </div>
+                </div>
+
+                <!-- 右欄：修改歷史 -->
+                <div class="subcard">
+                    <div class="subcard-head">
+                        <h3 style="margin:0;">修改歷史（最新 5 筆）</h3>
+                        <button id="viewAllHistoryBtn" class="secondary">查看完整修改歷史</button>
+                    </div>
+
+                    <div id="historyEmpty" class="kbd" style="display:none;">尚無狀態變更</div>
+                    <ul id="history" class="list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>刪除工單</h2>
+            <div class="row">
+                <button id="deleteBtn" class="secondary">刪除工單</button>
+                <span class="kbd">刪除後無法復原</span>
+                <span id="deleteMsg" class="msg"></span>
+            </div>
+        </section>
+    </main>
+
+    <style>
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .subcard {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            background: #fff;
+        }
+
+        .subcard h3 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .list {
+            margin: 8px 0 0;
+            padding-left: 18px;
+        }
+
+        .list li {
+            margin: 6px 0;
+            line-height: 1.35;
+        }
+
+        .meta-item {
+            min-width: 220px;
+        }
+
+        .meta-item .label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .meta-item .value {
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script type="module">
+        import { api, getRole } from "./assets/api.js";
+        import { guardPage } from "./assets/guard.js";
+
+        guardPage({
+            allowRoles: ["USER", "AGENT"],
+            title: "工單詳情",
+            hint: "此頁僅限一般使用者（USER）與客服/主管（AGENT）使用。"
+        });
+
+
+        const errorDiv = document.getElementById("error");
+        const params = new URLSearchParams(location.search);
+        const id = params.get("id");
+
+        function fmt(dt) { return dt ? dt.replace("T", " ").slice(0, 19) : ""; }
+
+        function prText(p) {
+            if (p === "HIGH") return "高";
+            if (p === "LOW") return "低";
+            return "中";
+        }
+
+        function metaHTML(t) {
+            return `
+      <div class="meta-item"><div class="label">ID</div><div class="value">#${t.id}</div></div>
+      <div class="meta-item"><div class="label">狀態</div><div class="value"><span class="badge">${t.status}</span></div></div>
+      <div class="meta-item"><div class="label">優先級</div><div class="value"><span class="badge">${prText(t.priority)}（${t.priority}）</span></div></div>
+      <div class="meta-item"><div class="label">建立者</div><div class="value">${t.requesterUsername ?? ""}</div></div>
+      <div class="meta-item"><div class="label">建立時間</div><div class="value">${fmt(t.createdAt)}</div></div>
+      <div class="meta-item"><div class="label">更新時間</div><div class="value">${fmt(t.updatedAt)}</div></div>
+      <div class="meta-item" style="min-width:100%;"><div class="label">標題</div><div class="value">${t.title}</div></div>
+      <div class="meta-item" style="min-width:100%;"><div class="label">內容</div><div class="value">${t.description ?? ""}</div></div>
+    `;
+        }
+
+        async function load() {
+            errorDiv.textContent = "";
+            document.getElementById("comments").innerHTML = "";
+            document.getElementById("history").innerHTML = "";
+            document.getElementById("commentsEmpty").style.display = "none";
+            document.getElementById("historyEmpty").style.display = "none";
+
+            try {
+                const data = await api(`/api/tickets/${id}/detail`);
+                const t = data.ticket;
+
+                document.getElementById("pageTitle").textContent = `詳情 #${t.id}`;
+                document.getElementById("meta").innerHTML = metaHTML(t);
+                document.getElementById("toStatus").value = t.status;
+
+                // 填入編輯區
+                document.getElementById("editTitle").value = t.title ?? "";
+                document.getElementById("editDesc").value = t.description ?? "";
+                document.getElementById("editPriority").value = t.priority ?? "MEDIUM";
+
+                // comments
+                if (!data.comments || data.comments.length === 0) {
+                    document.getElementById("commentsEmpty").style.display = "block";
+                } else {
+                    for (const c of data.comments) {
+                        const li = document.createElement("li");
+                        li.textContent = `[${fmt(c.createdAt)}] ${c.authorUsername}: ${c.content}`;
+                        document.getElementById("comments").appendChild(li);
+                    }
+                }
+
+                // history（放在 load() 裡）
+                if (!data.history || data.history.length === 0) {
+                    document.getElementById("historyEmpty").style.display = "block";
+                } else {
+                    for (const h of data.history) {
+                        const li = document.createElement("li");
+
+                        const labelMap = {
+                            STATUS: "狀態",
+                            PRIORITY: "優先級",
+                            TITLE: "標題",
+                            DESCRIPTION: "內容"
+                        };
+
+                        const fieldLabel = labelMap[h.fieldName] || h.fieldName;
+                        const fromVal = h.fromValue ?? "(空)";
+                        const toVal = h.toValue ?? "(空)";
+
+                        li.textContent =
+                            `[${fmt(h.createdAt)}] ${h.changedByUsername}: ` +
+                            `${fieldLabel}: ${fromVal} -> ${toVal}` +
+                            (h.note ? `（${h.note}）` : "");
+
+                        document.getElementById("history").appendChild(li);
+                    }
+                }
+
+
+                // ADMIN 不該來到這頁（後端也會擋），這裡只是 UI 顯示保險
+                if (getRole() === "ADMIN") {
+                    document.getElementById("deleteBtn").disabled = true;
+                    document.getElementById("updateBtn").disabled = true;
+                    document.getElementById("changeBtn").disabled = true;
+                }
+
+            } catch (e) {
+                errorDiv.textContent = e.message;
+            }
+        }
+
+        document.getElementById("commentForm").addEventListener("submit", async (ev) => {
+            ev.preventDefault();
+            const msg = document.getElementById("commentMsg");
+            msg.textContent = "";
+            const content = document.getElementById("content").value.trim();
+            if (!content) return;
+
+            try {
+                await api(`/api/tickets/${id}/comments`, {
+                    method: "POST",
+                    body: JSON.stringify({ content })
+                });
+                document.getElementById("content").value = "";
+                msg.textContent = "留言成功";
+                await load();
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        document.getElementById("changeBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("statusMsg");
+            msg.textContent = "";
+            const toStatus = document.getElementById("toStatus").value;
+            const note = document.getElementById("note").value.trim();
+
+            try {
+                const qs = new URLSearchParams();
+                if (note) qs.set("note", note);
+
+                await api(`/api/tickets/${id}/status/${toStatus}?${qs.toString()}`, { method: "PATCH" });
+                msg.textContent = "狀態更新成功";
+                document.getElementById("note").value = "";
+                await load();
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        document.getElementById("updateBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("updateMsg");
+            msg.textContent = "";
+
+            const title = document.getElementById("editTitle").value.trim();
+            const description = document.getElementById("editDesc").value.trim();
+            const priority = document.getElementById("editPriority").value;
+
+            try {
+                await api(`/api/tickets/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ title, description, priority })
+                });
+                msg.textContent = "工單更新成功";
+                await load();
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        document.getElementById("deleteBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("deleteMsg");
+            msg.textContent = "";
+            if (!confirm("確定要刪除這張工單嗎？刪除後無法復原。")) return;
+
+            try {
+                await api(`/api/tickets/${id}`, { method: "DELETE" });
+                msg.textContent = "刪除成功，返回列表...";
+                setTimeout(() => location.href = "tickets.html", 400);
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        document.getElementById("viewAllHistoryBtn")
+            .addEventListener("click", () => {
+                // 把 ticketId 帶過去
+                location.href = `ticket-history.html?id=${id}`;
+            });
+
+        document.getElementById("viewAllCommentsBtn")
+            .addEventListener("click", () => {
+                location.href = `ticket-comments.html?id=${id}`;
+            });
+
+        if (!id) {
+            errorDiv.textContent = "缺少 id，請用 ticket.html?id=1 開啟";
+        } else {
+            load();
+        }
+    </script>
+</body>
+
+</html>

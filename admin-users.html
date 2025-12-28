@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin - Users</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>使用者管理</h1>
+                <span class="tag">Admin</span>
+            </div>
+            <div class="row" style="margin:0;">
+                <a class="btn secondary" href="index.html">回主選單</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Create -->
+        <section class="card" id="createCard">
+            <h2>建立使用者</h2>
+
+            <div class="row">
+                <div class="field" style="max-width:220px;">
+                    <label>帳號</label>
+                    <input id="newUsername" maxlength="50" />
+                </div>
+
+                <div class="field" style="max-width:260px;">
+                    <label>密碼</label>
+                    <input id="newPassword" type="password" autocomplete="new-password" />
+                </div>
+
+                <div class="field" style="max-width:220px;">
+                    <label>角色</label>
+                    <select id="newRole">
+                        <option value="USER">一般使用者（USER）</option>
+                        <option value="AGENT">承辦人員（AGENT）</option>
+                        <option value="ADMIN">系統管理員（ADMIN）</option>
+                    </select>
+                </div>
+
+                <div class="field" style="max-width:160px;">
+                    <label>&nbsp;</label>
+                    <button id="createBtn">建立</button>
+                </div>
+
+                <span id="createMsg" class="msg"></span>
+            </div>
+        </section>
+
+        <!-- List -->
+        <section class="card" id="listCard" style="margin-top:14px;">
+            <h2>使用者列表</h2>
+
+            <div class="row">
+                <button id="reloadBtn" class="secondary">刷新</button>
+            </div>
+
+            <div id="error" class="error"></div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>帳號</th>
+                        <th>角色</th>
+                        <th>狀態</th>
+                        <th>建立時間</th>
+                        <th style="width:90px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+        import { guardPage } from "./assets/guard.js";
+
+        // ✅ 只保留 guardPage
+        guardPage({
+            allowRoles: ["ADMIN"],
+            title: "使用者管理",
+            hint: "此頁僅限管理員（ADMIN）操作。"
+        });
+
+        const errorDiv = document.getElementById("error");
+        const tbody = document.getElementById("tbody");
+
+        function fmt(dt) {
+            return dt ? dt.replace("T", " ").slice(0, 19) : "";
+        }
+
+        function roleText(role) {
+            if (role === "ADMIN") return "系統管理員（ADMIN）";
+            if (role === "AGENT") return "承辦人員（AGENT）";
+            return "一般使用者（USER）";
+        }
+
+        async function load() {
+            errorDiv.textContent = "";
+            tbody.innerHTML = "";
+
+            try {
+                const users = await api("/api/admin/users");
+
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="kbd">沒有資料</td></tr>`;
+                    return;
+                }
+
+                users.forEach(u => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${roleText(u.role)}</td>
+            <td>${u.enabled ? "啟用" : "停用"}</td>
+            <td>${fmt(u.createdAt)}</td>
+            <td><a href="admin-user.html?id=${u.id}">查看</a></td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (e) {
+                errorDiv.textContent = e.message;
+            }
+        }
+
+        document.getElementById("reloadBtn").addEventListener("click", load);
+
+        document.getElementById("createBtn").addEventListener("click", async () => {
+            const msg = document.getElementById("createMsg");
+            msg.textContent = "";
+
+            const username = document.getElementById("newUsername").value.trim();
+            const password = document.getElementById("newPassword").value;
+            const role = document.getElementById("newRole").value;
+
+            if (!username || !password) {
+                msg.textContent = "帳號 / 密碼不能空白";
+                return;
+            }
+
+            try {
+                await api("/api/admin/users", {
+                    method: "POST",
+                    body: JSON.stringify({ username, password, role })
+                });
+
+                msg.textContent = `建立成功：${username}`;
+                document.getElementById("newUsername").value = "";
+                document.getElementById("newPassword").value = "";
+                await load();
+
+            } catch (e) {
+                msg.textContent = e.message;
+            }
+        });
+
+        load();
+    </script>
+</body>
+
+</html>

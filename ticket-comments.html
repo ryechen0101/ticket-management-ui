@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <title>工單留言</title>
+    <link rel="stylesheet" href="assets/ui.css" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <h1>全部留言</h1>
+                <span class="tag">Comments</span>
+            </div>
+            <div class="row">
+                <a class="btn secondary" href="javascript:history.back()">回上一頁</a>
+                <a class="btn secondary" href="index.html">回主選單</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2 id="title">留言列表</h2>
+
+            <ul id="comments" class="list"></ul>
+            <div id="empty" class="kbd" style="display:none;">尚無留言</div>
+
+            <div class="pager">
+                <button id="prevBtn" class="secondary">上一頁</button>
+                <div id="pageInfo" class="info"></div>
+                <button id="nextBtn" class="secondary">下一頁</button>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { api } from "./assets/api.js";
+
+        const params = new URLSearchParams(location.search);
+        const ticketId = params.get("id");
+
+        let page = 0;
+        const size = 10;
+
+        function fmt(dt) {
+            return dt ? dt.replace("T", " ").slice(0, 19) : "";
+        }
+
+        async function load() {
+            const ul = document.getElementById("comments");
+            const empty = document.getElementById("empty");
+            const pageInfo = document.getElementById("pageInfo");
+
+            ul.innerHTML = "";
+            empty.style.display = "none";
+
+            const data = await api(`/api/tickets/${ticketId}/comments?page=${page}&size=${size}`);
+
+            if (!data.content || data.content.length === 0) {
+                empty.style.display = "block";
+                pageInfo.textContent = "";
+                document.getElementById("prevBtn").disabled = true;
+                document.getElementById("nextBtn").disabled = true;
+                return;
+            }
+
+            for (const c of data.content) {
+                const li = document.createElement("li");
+                li.textContent = `[${fmt(c.createdAt)}] ${c.authorUsername}: ${c.content}`;
+                ul.appendChild(li);
+            }
+
+            pageInfo.textContent = `第 ${data.number + 1} 頁 / 共 ${data.totalPages} 頁`;
+            document.getElementById("prevBtn").disabled = data.first;
+            document.getElementById("nextBtn").disabled = data.last;
+        }
+
+        document.getElementById("prevBtn").onclick = () => {
+            page = Math.max(0, page - 1);
+            load();
+        };
+
+        document.getElementById("nextBtn").onclick = () => {
+            page++;
+            load();
+        };
+
+        if (!ticketId) {
+            alert("缺少 id");
+        } else {
+            load();
+        }
+    </script>
+</body>
+
+</html>
